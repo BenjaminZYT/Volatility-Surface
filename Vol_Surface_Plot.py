@@ -33,34 +33,57 @@ server = app.server
 app.layout = html.Div([
     html.H1("Volatility Surface Plotter"),
     html.Div([
-        html.Label("Ticker"),
-        dcc.Dropdown(
-            id='ticker-dropdown',
-            options=dropdown_options,
-            placeholder="Select a ticker"
-        ),
-        dcc.Input(
-            id='ticker-input',
-            type='text',
-            placeholder="Or enter a ticker"
-        ),
-    ]),
-    html.Label("Length to Expiration"),
-    dcc.RadioItems(
-        id='exp-length',
-        options=[
-            {'label': '1/2-year', 'value': 'half'},
-            {'label': '1-year', 'value': '1'}
-        ],
-        value='half',
-        labelStyle={'display': 'inline-block'}
-    ),
-    html.Button('Go', id='go-button'),
-    html.Button('Download CSV', id='download-button', disabled=True),
+        html.Div([
+            html.Label("Ticker"),
+            dcc.Dropdown(
+                id='ticker-dropdown',
+                options=dropdown_options,
+                placeholder="Select a ticker",
+                style={'width': '200px', 'display': 'inline-block'}
+            ),
+            dcc.Input(
+                id='ticker-input',
+                type='text',
+                placeholder="Or enter a ticker",
+                style={'display': 'inline-block', 'margin-left': '10px'}
+            ),
+            html.Button('Reset', id='reset-button', style={'display': 'inline-block', 'margin-left': '10px'})
+        ], style={'display': 'inline-block', 'verticalAlign': 'top'}),
+        html.Div([
+            html.Label("Length to Expiration"),
+            dcc.RadioItems(
+                id='exp-length',
+                options=[
+                    {'label': '1/2-year', 'value': 'half'},
+                    {'label': '1-year', 'value': '1'}
+                ],
+                value='half',
+                labelStyle={'display': 'inline-block'}
+            ),
+        ], style={'display': 'inline-block', 'margin-left': '20px'}),
+        html.Div([
+            html.Button('Go', id='go-button', style={'margin-right': '10px'}),
+            html.Button('Download CSV', id='download-button', disabled=True)
+        ], style={'display': 'inline-block', 'margin-left': '20px'}),
+    ], style={'display': 'flex', 'alignItems': 'center', 'margin-bottom': '20px'}),
+    html.Div([
+        "What to Know and How to Use? ",
+        html.A("Click here.", href="https://github.com/BenjaminZYT/Volatility-Surface/blob/main/README.md", target="_blank")
+    ], style={'margin-bottom': '20px', 'font-weight': 'bold'}),
     dcc.Download(id="download-dataframe-csv"),
     dcc.Graph(id='volatility-surface-call'),
     dcc.Graph(id='volatility-surface-put'),
 ])
+
+@app.callback(
+    [Output('ticker-dropdown', 'value'),
+     Output('ticker-input', 'value')],
+    [Input('reset-button', 'n_clicks')]
+)
+def reset_ticker(n_clicks):
+    if n_clicks:
+        return None, ''
+    return dash.no_update, dash.no_update
 
 def record_user_query(ticker, exp_choice):
     query_data = {
