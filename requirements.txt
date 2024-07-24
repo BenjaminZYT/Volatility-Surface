@@ -9,3 +9,5 @@ plotly==5.9.0
 numpy==1.24.3
 scipy==1.10.0
 flask==2.2.2
+werkzeug==2.0.3
+websockets==10.4
