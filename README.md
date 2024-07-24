@@ -4,9 +4,9 @@ By Benjamin Z.Y. Teoh @ July 2024 @ Alpharetta, GA
 This application visualizes the volatility of call and put options for a selected ticker, providing insight into how these volatilities vary with strike price and expiration date.
 
 ### How to Use:
-1. Select or enter the ticker symbol of interest. The dropdown menu consists of tickers from the DJIA.
+1. Select or enter the ticker symbol of interest. The dropdown menu consists of all 30 tickers from the Dow Jones Industrial Average.
 2. Choose between a 1/2-year or 1-year period for options contracts with expiration dates within the selected range.
-3. Click "Go" to generate plots showing volatility versus strike price and expiration date.
+3. Click "Go" to generate plots showing volatility versus strike price and expiration date. The "Download CSV" saves the _options_ data to your device.
 
 ### Important Notes:
 1. Data is sourced from Yahoo Finance, so options data for non-US markets may not be available.
