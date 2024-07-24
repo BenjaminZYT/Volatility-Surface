@@ -4,7 +4,7 @@ Overview:
 This application visualizes the volatility of call and put options for a selected ticker, providing insight into how these volatilities vary with strike price and expiration date.
 
 How to Use:
-1. Select or enter the ticker symbol of interest.
+1. Select or enter the ticker symbol of interest. The dropdown menu consists of tickers from the DJIA.
 2. Choose between a 1/2-year or 1-year period for options contracts with expiration dates within the selected range.
 3. Click "Go" to generate plots showing volatility versus strike price and expiration date.
 
