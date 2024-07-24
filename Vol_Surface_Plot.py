@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[32]:
+# In[ ]:
 
 
 import dash
@@ -122,7 +122,7 @@ def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
             "expiration_choice": 0.5 if exp_choice == 'half' else 1
         }
         with sqlite3.connect('OptionsProj.db') as conn:
-	    cursor = conn.cursor()
+            cursor = conn.cursor()
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS user_queries (
                     datetime TEXT,
@@ -272,10 +272,3 @@ def download_csv(n_clicks, dropdown_value, input_value, exp_choice):
 
 if __name__ == "__main__":
     app.run_server(debug=True)
-
-
-# In[ ]:
-
-
-
-
