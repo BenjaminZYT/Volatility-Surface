@@ -205,7 +205,7 @@ def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
             y=df_filtered['strike'],
             z=df_filtered['vol'],
             color='In-The-Money',
-            title=f'{ticker} {("Calls" if option_type == "c" else "Puts")} (Spot Price: ${spot_price} @ {now} U.S. Eastern w/ Rate {round(rate, 2)})',
+            title=f'Using {ticker} {("Calls" if option_type == "c" else "Puts")} (Spot Price: ${spot_price} @ {now} U.S. Eastern w/ Rate {round(rate, 2)})',
             labels={
                 'x': 'Expiration Date',
                 'y': 'Strike Price',
