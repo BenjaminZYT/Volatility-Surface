@@ -1,7 +1,7 @@
 By Benjamin Z.Y. Teoh @ July 2024 @ Alpharetta, GA
 
 ## Overview
-This application visualizes the volatility of call and put options for a selected ticker, providing insight into how these volatilities vary with strike price and expiration date.
+This application visualizes the implied volatility of an asset using its call and put options. It provides insight into how these volatilities vary with strike price and expiration date. While theoretical models sometimes simplify volatility surfaces, actual market data shows that they are more complex. This application plots the empirical volatility surfaces derived from both call and put options data, offering a more accurate representation of market conditions.
 
 ### How to Use:
 1. Select or enter the ticker symbol of interest. The dropdown menu consists of all 30 tickers from the Dow Jones Industrial Average.
