@@ -62,6 +62,27 @@ app.layout = html.Div([
     dcc.Graph(id='volatility-surface-put'),
 ])
 
+def record_user_query(ticker, exp_choice):
+    query_data = {
+        "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "ticker": ticker,
+        "expiration_choice": 0.5 if exp_choice == 'half' else 1
+    }
+    with sqlite3.connect('OptionsProj.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_queries (
+                datetime TEXT,
+                ticker TEXT,
+                expiration_choice REAL
+            )
+        ''')
+        cursor.execute('''
+            INSERT INTO user_queries (datetime, ticker, expiration_choice)
+            VALUES (:datetime, :ticker, :expiration_choice)
+        ''', query_data)
+        conn.commit()
+
 @app.callback(
     [Output('volatility-surface-call', 'figure'),
      Output('volatility-surface-put', 'figure'),
@@ -113,26 +134,11 @@ def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
 
     df_raw = pd.DataFrame(rows, columns=["datetime", "exp_date", "type", "strike", "price", "vol", "inTheMoney"])
 
-    # Record user queries to SQLite
-    def record_user_query(ticker, exp_choice):
-        user_ip = request.remote_addr if request else 'Unknown'
-        query_data = {
-            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "ticker": ticker,
-            "expiration_choice": 0.5 if exp_choice == 'half' else 1
-        }
-        with sqlite3.connect('OptionsProj.db') as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS user_queries (
-                    datetime TEXT,
-                    ticker TEXT,
-                    expiration_choice REAL
-                )
-            ''')
-            pd.DataFrame([query_data]).to_sql('user_queries', conn, if_exists='append', index=False)
-
     record_user_query(ticker, exp_choice)
+
+     # Store df_raw in an auxiliary table
+    with sqlite3.connect('OptionsProj.db') as conn:
+        df_raw.to_sql('data_aux', conn, if_exists='replace', index=False)
 
     # Fit volatility surfaces
     def fit_volatility_surface(df_raw, option_type):
@@ -268,6 +274,14 @@ def download_csv(n_clicks, dropdown_value, input_value, exp_choice):
     # Record user query
     record_user_query(ticker, exp_choice)
 
+    # Retrieve df_raw from auxiliary table
+    with sqlite3.connect('OptionsProj.db') as conn:
+        df_raw = pd.read_sql('SELECT * FROM data_aux', conn)
+
+    # Destroy auxiliary table
+    with sqlite3.connect('OptionsProj.db') as conn:
+        conn.execute('DROP TABLE IF EXISTS data_aux')
+    
     return dcc.send_data_frame(df_raw.to_csv, filename=f"{ticker}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{exp_choice}.csv")
 
 if __name__ == "__main__":
