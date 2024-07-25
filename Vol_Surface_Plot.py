@@ -8,7 +8,8 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
-import dash_bootstrap_components as dbc
+from dash import ctx
+from dash import callback_context
 import sqlite3
 import yfinance as yf
 from datetime import datetime
@@ -31,93 +32,173 @@ dropdown_options = [{'label': ticker, 'value': ticker} for ticker in djia_ticker
 
 app = dash.Dash(__name__)
 server = app.server
-
 app.layout = html.Div([
-    html.H1("Volatility Surface Plotter"),
-    html.Div([
-        html.Div([
-            html.Label("Ticker"),
-            dcc.Dropdown(
-                id='ticker-dropdown',
-                options=dropdown_options,
-                placeholder="Select a ticker",
-                clearable=True,  # Adds the clear button
-                style={'width': '200px', 'display': 'inline-block'}
-            ),
-            dcc.Input(
-                id='ticker-input',
-                type='text',
-                placeholder="Or enter a ticker",
-                style={'display': 'inline-block', 'margin-left': '10px'}
-            ),
-            html.Button('Reset', id='reset-button', style={'display': 'inline-block', 'margin-left': '10px'})
-        ], style={'display': 'inline-block', 'verticalAlign': 'top'}),
-        html.Div([
-            html.Label("Length to Expiration"),
-            dcc.RadioItems(
-                id='exp-length',
-                options=[
-                    {'label': '1/2-year', 'value': 'half'},
-                    {'label': '1-year', 'value': '1'}
-                ],
-                value='half',
-                labelStyle={'display': 'inline-block'}
-            ),
-        ], style={'display': 'inline-block', 'margin-left': '20px'}),
-        html.Div([
-            html.Button('Go', id='go-button', style={'margin-right': '10px'}),
-            html.Button('Download CSV', id='download-button', disabled=True)
-        ], style={'display': 'inline-block', 'margin-left': '20px'}),
-    ], style={'display': 'flex', 'alignItems': 'center', 'margin-bottom': '20px'}),
-    html.Div(id='error-message', style={'color': 'red', 'margin-bottom': '20px'}),
     html.Div([
         "What to Know and How to Use? ",
         html.A("Click here.", href="https://github.com/BenjaminZYT/Volatility-Surface/blob/main/README.md", target="_blank")
     ], style={'margin-bottom': '20px', 'font-weight': 'bold'}),
+    
+    # Dropdown for ticker selection
+    dcc.Dropdown(
+        id='ticker-dropdown',
+        options=dropdown_options,
+        value=None,  # No default selection
+        clearable=True,  # Allows user to clear the selection
+        placeholder="Select a ticker"
+    ),
+
+    # Input field for ticker entry
+    dcc.Input(
+        id='ticker-input',
+        type='text',
+        value='',  # Initially blank
+        placeholder='Or enter a ticker',
+        style={'display': 'inline-block', 'margin-left': '10px'}
+    ),
+
+    # Reset button
+    html.Button('Reset', id='reset-button', n_clicks=0),
+
+    # Go button
+    html.Button('Go', id='go-button', n_clicks=0),
+
+    # Download CSV button
+    html.Button('Download CSV', id='download-button', n_clicks=0, disabled=True),
+
+#     # Length to Expiration Dropdown
+#     dcc.Dropdown(
+#         id='exp-length',
+#         options=[
+#             {'label': 'Less than 6 months', 'value': 'half'},
+#             {'label': 'Less than 12 months', 'value': 'full'}
+#         ],
+#         value='half',  # Default value
+#         clearable=False,  # No option to clear this selection
+#     ),
+    
+    # Length to Expiration Radio Items
+    dcc.RadioItems(
+        id='exp-length',
+        options=[
+            {'label': 'Up to 6 months', 'value': 'half'},
+            {'label': 'Up to 12 months', 'value': 'full'}
+        ],
+        value='half',  # Default value
+        inline=True,  # Display the radio buttons inline
+    ),
+
+    # Error message display
+    html.Div(id='error-message', children='', style={'color': 'red', 'margin-bottom': '20px'}),
+    
     dcc.Download(id="download-dataframe-csv"),
+
+    # Graphs for volatility surfaces
     dcc.Graph(id='volatility-surface-call'),
-    dcc.Graph(id='volatility-surface-put'),
+    dcc.Graph(id='volatility-surface-put')
 ])
 
+def validate_ticker(ticker):
+    try:
+        # Fetch the stock object
+        stock = yf.Ticker(ticker)
+
+        # Check if stock data is available
+        if stock.history(period='1d').empty:
+            return False
+        
+        # Check if options data is available
+        options_dates = stock.options
+        if not options_dates:
+            return False
+
+        # Optional: Check if options data is current (e.g., at least one date available in the future)
+        today = datetime.now()
+        if not any(datetime.strptime(date, '%Y-%m-%d') > today for date in options_dates):
+            return False
+
+        return True
+
+    except Exception as e:
+        # Handle any exceptions that may occur (e.g., network issues, invalid ticker)
+        print(f"Error validating ticker: {e}")
+        return False
+
+def record_user_query(ticker, exp_choice):
+    query_data = {
+        "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "ticker": ticker,
+        "expiration_choice": 0.5 if exp_choice == 'half' else 1
+    }
+    with sqlite3.connect('OptionsProj.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_queries (
+                datetime TEXT,
+                ticker TEXT,
+                expiration_choice REAL
+            )
+        ''')
+        cursor.execute('''
+            INSERT INTO user_queries (datetime, ticker, expiration_choice)
+            VALUES (:datetime, :ticker, :expiration_choice)
+        ''', query_data)
+        conn.commit()
+
+# Define the callback function
 @app.callback(
-    Output('error-message', 'children'),
-    Output('ticker-dropdown', 'value'),
-    Output('ticker-input', 'value'),
-    Output('volatility-surface-call', 'figure'),
-    Output('volatility-surface-put', 'figure'),
-    Input('go-button', 'n_clicks'),
-    Input('reset-button', 'n_clicks'),
-    State('ticker-dropdown', 'value'),
-    State('ticker-input', 'value'),
-    State('exp-length', 'value'),
-    prevent_initial_call=True
+    [Output('volatility-surface-call', 'figure'),
+     Output('volatility-surface-put', 'figure'),
+     Output('download-button', 'disabled'),
+     Output('error-message', 'children'),
+     Output('ticker-dropdown', 'value'),
+     Output('ticker-input', 'value')],
+    [Input('go-button', 'n_clicks'),
+     Input('reset-button', 'n_clicks')],
+    [State('ticker-dropdown', 'value'),
+     State('ticker-input', 'value'),
+     State('exp-length', 'value')]
 )
-def validate_and_reset(go_clicks, reset_clicks, dropdown_value, input_value, exp_choice):
-    triggered_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-    
-    # Handle reset button click
+def update_output(go_clicks, reset_clicks, dropdown_value, input_value, exp_choice):
+    # Determine which button triggered the callback
+    triggered_id = callback_context.triggered_id
+
     if triggered_id == 'reset-button':
-        return '', None, '', dash.no_update, dash.no_update
+        return {}, {}, True, '', '', None  # Use '' to clear input field explicitly
 
-    # Determine the ticker to use
-    ticker = dropdown_value if dropdown_value else input_value
+    if triggered_id == 'go-button':
+        # Case 1: Dropdown selection and no input
+        if dropdown_value and not input_value:
+            ticker = dropdown_value
+        # Case 2: No dropdown selection but valid input
+        elif not dropdown_value and input_value:
+            if validate_ticker(input_value):
+                ticker = input_value
+            else:
+                return {}, {}, True, "Invalid input or data does not exist.", None, ''  # Clear input field explicitly
+        # Case 3: Dropdown selection and input provided
+        elif dropdown_value and input_value:
+            if dropdown_value == input_value:
+                ticker = dropdown_value
+            else:
+                return {}, {}, True, "Tickers do not match. Try again.", None, ''  # Clear input field explicitly
+        else:
+            return {}, {}, True, "Please provide a valid ticker.", None, ''  # Clear input field explicitly
 
-    # Handle conflicting ticker inputs
-    if dropdown_value and input_value and dropdown_value != input_value:
-        return 'Invalid Input. Please ensure that the ticker matches between dropdown and input.', None, '', dash.no_update, dash.no_update
-    
-    # Check ticker validity and options data
-    if not ticker or not ticker_exists(ticker):
-        return 'Invalid input. Please ensure that the ticker is valid or options data exists.', None, '', dash.no_update, dash.no_update
+        # If ticker is valid, update plots
+        fig_call, fig_put, _ = update_plots(go_clicks, dropdown_value, input_value, exp_choice)
+        return fig_call, fig_put, False, None, dropdown_value, input_value
+
+    # Default return case if no valid input
+    return {}, {}, True, None, dropdown_value, input_value
 
 def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
     if n_clicks is None:
         return {}, {}, True
-    
+
     ticker = dropdown_value if dropdown_value else input_value
     if not ticker:
         return {}, {}, True
-    
+
     # Retrieve data
     stock = yf.Ticker(ticker)
     now = datetime.now().strftime("%m/%d/%Y %I:%M %p")
@@ -154,7 +235,7 @@ def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
 
     record_user_query(ticker, exp_choice)
 
-     # Store df_raw in an auxiliary table
+    # Store df_raw in an auxiliary table
     with sqlite3.connect('OptionsProj.db') as conn:
         df_raw.to_sql('data_aux', conn, if_exists='replace', index=False)
 
@@ -283,27 +364,6 @@ def ticker_exists(ticker):
         return len(options) > 0
     except Exception:
         return False
-
-def record_user_query(ticker, exp_choice):
-    query_data = {
-        "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "ticker": ticker,
-        "expiration_choice": 0.5 if exp_choice == 'half' else 1
-    }
-    with sqlite3.connect('OptionsProj.db') as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS user_queries (
-                datetime TEXT,
-                ticker TEXT,
-                expiration_choice REAL
-            )
-        ''')
-        cursor.execute('''
-            INSERT INTO user_queries (datetime, ticker, expiration_choice)
-            VALUES (:datetime, :ticker, :expiration_choice)
-        ''', query_data)
-        conn.commit()
 
 @app.callback(
     Output("download-dataframe-csv", "data"),
