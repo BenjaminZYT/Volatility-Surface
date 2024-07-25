@@ -31,6 +31,7 @@ dropdown_options = [{'label': ticker, 'value': ticker} for ticker in djia_ticker
 
 app = dash.Dash(__name__)
 server = app.server
+
 app.layout = html.Div([
     html.H1("Volatility Surface Plotter"),
     html.Div([
@@ -40,6 +41,7 @@ app.layout = html.Div([
                 id='ticker-dropdown',
                 options=dropdown_options,
                 placeholder="Select a ticker",
+                clearable=True,  # Adds the clear button
                 style={'width': '200px', 'display': 'inline-block'}
             ),
             dcc.Input(
@@ -108,53 +110,7 @@ def validate_and_reset(go_clicks, reset_clicks, dropdown_value, input_value, exp
     if not ticker or not ticker_exists(ticker):
         return 'Invalid input. Please ensure that the ticker is valid or options data exists.', None, '', dash.no_update, dash.no_update
 
-    # If everything is valid, clear error message and plot graphs (assuming valid input)
-    # Implement your logic to generate figures for volatility-surface-call and volatility-surface-put here
-    # For example:
-    # fig_call = generate_volatility_surface_call(ticker, exp_choice)
-    # fig_put = generate_volatility_surface_put(ticker, exp_choice)
-
-    return '', dropdown_value, input_value, dash.no_update, dash.no_update
-
-def ticker_exists(ticker):
-    try:
-        stock = yf.Ticker(ticker)
-        options = stock.options
-        return len(options) > 0
-    except Exception:
-        return False
-
-def record_user_query(ticker, exp_choice):
-    query_data = {
-        "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "ticker": ticker,
-        "expiration_choice": 0.5 if exp_choice == 'half' else 1
-    }
-    with sqlite3.connect('OptionsProj.db') as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS user_queries (
-                datetime TEXT,
-                ticker TEXT,
-                expiration_choice REAL
-            )
-        ''')
-        cursor.execute('''
-            INSERT INTO user_queries (datetime, ticker, expiration_choice)
-            VALUES (:datetime, :ticker, :expiration_choice)
-        ''', query_data)
-        conn.commit()
-
-@app.callback(
-    [Output('volatility-surface-call', 'figure'),
-     Output('volatility-surface-put', 'figure'),
-     Output('download-button', 'disabled')],
-    [Input('go-button', 'n_clicks')],
-    [State('ticker-dropdown', 'value'),
-     State('ticker-input', 'value'),
-     State('exp-length', 'value')]
-)
-def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
+    def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
     if n_clicks is None:
         return {}, {}, True
     
@@ -319,6 +275,35 @@ def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
     fig_put = plot_3d_scatter_with_surface(df_raw, 'p', round(spot, 2), Surface_Put)
 
     return fig_call, fig_put, False
+
+def ticker_exists(ticker):
+    try:
+        stock = yf.Ticker(ticker)
+        options = stock.options
+        return len(options) > 0
+    except Exception:
+        return False
+
+def record_user_query(ticker, exp_choice):
+    query_data = {
+        "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "ticker": ticker,
+        "expiration_choice": 0.5 if exp_choice == 'half' else 1
+    }
+    with sqlite3.connect('OptionsProj.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_queries (
+                datetime TEXT,
+                ticker TEXT,
+                expiration_choice REAL
+            )
+        ''')
+        cursor.execute('''
+            INSERT INTO user_queries (datetime, ticker, expiration_choice)
+            VALUES (:datetime, :ticker, :expiration_choice)
+        ''', query_data)
+        conn.commit()
 
 @app.callback(
     Output("download-dataframe-csv", "data"),
