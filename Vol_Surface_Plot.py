@@ -8,6 +8,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
+import dash_bootstrap_components as dbc
 import sqlite3
 import yfinance as yf
 from datetime import datetime
@@ -47,7 +48,6 @@ app.layout = html.Div([
                 placeholder="Or enter a ticker",
                 style={'display': 'inline-block', 'margin-left': '10px'}
             ),
-            html.Button('Reset', id='reset-button', style={'display': 'inline-block', 'margin-left': '10px'})
         ], style={'display': 'inline-block', 'verticalAlign': 'top'}),
         html.Div([
             html.Label("Length to Expiration"),
@@ -63,57 +63,53 @@ app.layout = html.Div([
         ], style={'display': 'inline-block', 'margin-left': '20px'}),
         html.Div([
             html.Button('Go', id='go-button', style={'margin-right': '10px'}),
+            html.Button('Reset', id='reset-button', style={'margin-right': '10px'}),
             html.Button('Download CSV', id='download-button', disabled=True)
         ], style={'display': 'inline-block', 'margin-left': '20px'}),
     ], style={'display': 'flex', 'alignItems': 'center', 'margin-bottom': '20px'}),
+    html.Div(id='error-message', style={'color': 'red', 'margin-bottom': '20px'}),
     html.Div([
         "What to Know and How to Use? ",
         html.A("Click here.", href="https://github.com/BenjaminZYT/Volatility-Surface/blob/main/README.md", target="_blank")
     ], style={'margin-bottom': '20px', 'font-weight': 'bold'}),
     dcc.Download(id="download-dataframe-csv"),
-    html.Div(id='error-message', style={'color': 'red', 'margin-top': '20px'}),
     dcc.Graph(id='volatility-surface-call'),
     dcc.Graph(id='volatility-surface-put'),
 ])
 
 @app.callback(
-    [Output('ticker-dropdown', 'value'),
-     Output('ticker-input', 'value'),
-     Output('error-message', 'children')],
-    [Input('go-button', 'n_clicks'),
-     Input('reset-button', 'n_clicks')],
-    [State('ticker-dropdown', 'value'),
-     State('ticker-input', 'value')]
+    Output('error-message', 'children'),
+    Output('ticker-dropdown', 'value'),
+    Output('ticker-input', 'value'),
+    Input('go-button', 'n_clicks'),
+    Input('reset-button', 'n_clicks'),
+    State('ticker-dropdown', 'value'),
+    State('ticker-input', 'value'),
+    State('exp-length', 'value'),
+    prevent_initial_call=True
 )
-def validate_and_reset_ticker(go_clicks, reset_clicks, dropdown_value, input_value):
-    # Determine which button was pressed
-    ctx = callback_context
-
-    if not ctx.triggered:
-        raise PreventUpdate
+def validate_and_reset(go_clicks, reset_clicks, dropdown_value, input_value, exp_choice):
+    triggered_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     
-    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
     if triggered_id == 'reset-button':
-        return None, '', ''
+        return '', None, ''
 
-    if triggered_id == 'go-button':
-        if dropdown_value and input_value and dropdown_value != input_value:
-            return None, '', 'Invalid Input. Please try again.'
-        
-        ticker = dropdown_value if dropdown_value else input_value
-        if not ticker:
-            return None, '', 'Invalid Input. Please try again.'
-        
-        try:
-            stock = yf.Ticker(ticker)
-            options_dates = stock.options
-            if not options_dates:
-                return None, '', 'Invalid Input. Please try again.'
-        except Exception as e:
-            return None, '', 'Invalid Input. Please try again.'
-        
-        return dropdown_value, input_value, ''
+    ticker = dropdown_value if dropdown_value else input_value
+    if dropdown_value and input_value and dropdown_value != input_value:
+        return 'Invalid Input. Please try again.', None, ''
+    
+    if not ticker or not ticker_exists(ticker):
+        return 'Invalid Input. Please try again.', None, ''
+
+    return '', dropdown_value, input_value
+
+def ticker_exists(ticker):
+    try:
+        stock = yf.Ticker(ticker)
+        options = stock.options
+        return len(options) > 0
+    except:
+        return False
 
 def record_user_query(ticker, exp_choice):
     query_data = {
