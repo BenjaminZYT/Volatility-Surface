@@ -91,13 +91,18 @@ app.layout = html.Div([
 def validate_and_reset(go_clicks, reset_clicks, dropdown_value, input_value, exp_choice):
     triggered_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     
+    # Handle reset button click
     if triggered_id == 'reset-button':
         return '', None, ''
 
+    # Handle Go button click
     ticker = dropdown_value if dropdown_value else input_value
+    
+    # Check for conflicting ticker inputs
     if dropdown_value and input_value and dropdown_value != input_value:
         return 'Invalid Input. Please try again.', None, ''
     
+    # Check for ticker validity
     if not ticker or not ticker_exists(ticker):
         return 'Invalid Input. Please try again.', None, ''
 
@@ -108,7 +113,7 @@ def ticker_exists(ticker):
         stock = yf.Ticker(ticker)
         options = stock.options
         return len(options) > 0
-    except:
+    except Exception as e:
         return False
 
 def record_user_query(ticker, exp_choice):
