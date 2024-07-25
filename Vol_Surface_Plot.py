@@ -81,6 +81,8 @@ app.layout = html.Div([
     Output('error-message', 'children'),
     Output('ticker-dropdown', 'value'),
     Output('ticker-input', 'value'),
+    Output('volatility-surface-call', 'figure'),
+    Output('volatility-surface-put', 'figure'),
     Input('go-button', 'n_clicks'),
     Input('reset-button', 'n_clicks'),
     State('ticker-dropdown', 'value'),
@@ -93,27 +95,33 @@ def validate_and_reset(go_clicks, reset_clicks, dropdown_value, input_value, exp
     
     # Handle reset button click
     if triggered_id == 'reset-button':
-        return '', None, ''
+        return '', None, '', dash.no_update, dash.no_update
 
-    # Handle Go button click
+    # Determine the ticker to use
     ticker = dropdown_value if dropdown_value else input_value
-    
-    # Check for conflicting ticker inputs
-    if dropdown_value and input_value and dropdown_value != input_value:
-        return 'Invalid Input. Please try again.', None, ''
-    
-    # Check for ticker validity
-    if not ticker or not ticker_exists(ticker):
-        return 'Invalid Input. Please try again.', None, ''
 
-    return '', dropdown_value, input_value
+    # Handle conflicting ticker inputs
+    if dropdown_value and input_value and dropdown_value != input_value:
+        return 'Invalid Input. Please ensure that the ticker matches between dropdown and input.', None, '', dash.no_update, dash.no_update
+    
+    # Check ticker validity and options data
+    if not ticker or not ticker_exists(ticker):
+        return 'Invalid input. Please ensure that the ticker is valid or options data exists.', None, '', dash.no_update, dash.no_update
+
+    # If everything is valid, clear error message and plot graphs (assuming valid input)
+    # Implement your logic to generate figures for volatility-surface-call and volatility-surface-put here
+    # For example:
+    # fig_call = generate_volatility_surface_call(ticker, exp_choice)
+    # fig_put = generate_volatility_surface_put(ticker, exp_choice)
+
+    return '', dropdown_value, input_value, dash.no_update, dash.no_update
 
 def ticker_exists(ticker):
     try:
         stock = yf.Ticker(ticker)
         options = stock.options
         return len(options) > 0
-    except Exception as e:
+    except Exception:
         return False
 
 def record_user_query(ticker, exp_choice):
