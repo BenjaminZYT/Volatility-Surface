@@ -48,19 +48,25 @@ app.layout = html.Div([
                 placeholder="Or enter a ticker",
                 style={'display': 'inline-block', 'margin-left': '10px'}
             ),
-            html.Button('Reset', id='reset-button', style={'display': 'inline-block', 'margin-left': '10px'}),
-            html.Div([
-                html.Label("Length to Expiration"),
-                dcc.RadioItems(
-                    id='exp-length',
-                    options=[
-                        {'label': '1/2-year', 'value': 'half'},
-                        {'label': '1-year', 'value': '1'}
-                    ],
-                    value='half',
-                    labelStyle={'display': 'inline-block'}
-                ),
-            ], style={'display': 'inline-block', 'margin-left': '20px'}),
+            html.Button('Reset', id='reset-button', style={'display': 'inline-block', 'margin-left': '10px'})
+        ], style={'display': 'inline-block', 'verticalAlign': 'top'}),
+        html.Div([
+            html.Label("Length to Expiration"),
+            dcc.RadioItems(
+                id='exp-length',
+                options=[
+                    {'label': '1/2-year', 'value': 'half'},
+                    {'label': '1-year', 'value': '1'}
+                ],
+                value='half',
+                labelStyle={'display': 'inline-block'}
+            ),
+        ], style={'display': 'inline-block', 'margin-left': '20px'}),
+        html.Div([
+            html.Button('Go', id='go-button', style={'margin-right': '10px'}),
+            html.Button('Download CSV', id='download-button', disabled=True)
+        ], style={'display': 'inline-block', 'margin-left': '20px'}),
+        html.Div(id='error-message', style={'color': 'red', 'margin-bottom': '20px'}),
             html.Div([
                 html.Button('Go', id='go-button', style={'margin-right': '10px'}),
                 html.Button('Download CSV', id='download-button', disabled=True)
