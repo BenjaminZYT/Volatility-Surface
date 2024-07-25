@@ -34,6 +34,7 @@ app = dash.Dash(__name__)
 server = app.server
 app.layout = html.Div([
     html.Div([
+        html.H1("Volatility Surface Plotter"),
         "What to Know and How to Use? ",
         html.A("Click here.", href="https://github.com/BenjaminZYT/Volatility-Surface/blob/main/README.md", target="_blank")
     ], style={'margin-bottom': '20px', 'font-weight': 'bold'}),
