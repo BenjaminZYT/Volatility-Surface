@@ -66,12 +66,8 @@ app.layout = html.Div([
             html.Button('Go', id='go-button', style={'margin-right': '10px'}),
             html.Button('Download CSV', id='download-button', disabled=True)
         ], style={'display': 'inline-block', 'margin-left': '20px'}),
-        html.Div(id='error-message', style={'color': 'red', 'margin-bottom': '20px'}),
-            html.Div([
-                html.Button('Go', id='go-button', style={'margin-right': '10px'}),
-                html.Button('Download CSV', id='download-button', disabled=True)
-            ], style={'display': 'inline-block', 'margin-left': '20px'}),
-            html.Div(id='error-message', style={'color': 'red', 'margin-bottom': '20px'}),
+    ], style={'display': 'flex', 'alignItems': 'center', 'margin-bottom': '20px'}),
+    html.Div(id='error-message', style={'color': 'red', 'margin-bottom': '20px'}),
     html.Div([
         "What to Know and How to Use? ",
         html.A("Click here.", href="https://github.com/BenjaminZYT/Volatility-Surface/blob/main/README.md", target="_blank")
