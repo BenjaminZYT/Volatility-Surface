@@ -160,10 +160,11 @@ def record_user_query(ticker, exp_choice):
 )
 def update_output(go_clicks, reset_clicks, dropdown_value, input_value, exp_choice):
     # Determine which button triggered the callback
-    triggered_id = callback_context.triggered_id
+    ctx = dash.callback_context
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if triggered_id == 'reset-button':
-        return {}, {}, True, '', '', None  # Use '' to clear input field explicitly
+        return {}, {}, True, '', None, ''  # Use '' to clear input field and None for dropdown
 
     if triggered_id == 'go-button':
         # Case 1: Dropdown selection and no input
