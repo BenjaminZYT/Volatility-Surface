@@ -110,7 +110,7 @@ def validate_and_reset(go_clicks, reset_clicks, dropdown_value, input_value, exp
     if not ticker or not ticker_exists(ticker):
         return 'Invalid input. Please ensure that the ticker is valid or options data exists.', None, '', dash.no_update, dash.no_update
 
-    def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
+def update_plots(n_clicks, dropdown_value, input_value, exp_choice):
     if n_clicks is None:
         return {}, {}, True
     
