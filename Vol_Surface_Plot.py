@@ -71,19 +71,49 @@ app.layout = html.Div([
         html.A("Click here.", href="https://github.com/BenjaminZYT/Volatility-Surface/blob/main/README.md", target="_blank")
     ], style={'margin-bottom': '20px', 'font-weight': 'bold'}),
     dcc.Download(id="download-dataframe-csv"),
+    html.Div(id='error-message', style={'color': 'red', 'margin-top': '20px'}),
     dcc.Graph(id='volatility-surface-call'),
     dcc.Graph(id='volatility-surface-put'),
 ])
 
 @app.callback(
     [Output('ticker-dropdown', 'value'),
-     Output('ticker-input', 'value')],
-    [Input('reset-button', 'n_clicks')]
+     Output('ticker-input', 'value'),
+     Output('error-message', 'children')],
+    [Input('go-button', 'n_clicks'),
+     Input('reset-button', 'n_clicks')],
+    [State('ticker-dropdown', 'value'),
+     State('ticker-input', 'value')]
 )
-def reset_ticker(n_clicks):
-    if n_clicks:
-        return None, ''
-    return dash.no_update, dash.no_update
+def validate_and_reset_ticker(go_clicks, reset_clicks, dropdown_value, input_value):
+    # Determine which button was pressed
+    ctx = callback_context
+
+    if not ctx.triggered:
+        raise PreventUpdate
+    
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggered_id == 'reset-button':
+        return None, '', ''
+
+    if triggered_id == 'go-button':
+        if dropdown_value and input_value and dropdown_value != input_value:
+            return None, '', 'Invalid Input. Please try again.'
+        
+        ticker = dropdown_value if dropdown_value else input_value
+        if not ticker:
+            return None, '', 'Invalid Input. Please try again.'
+        
+        try:
+            stock = yf.Ticker(ticker)
+            options_dates = stock.options
+            if not options_dates:
+                return None, '', 'Invalid Input. Please try again.'
+        except Exception as e:
+            return None, '', 'Invalid Input. Please try again.'
+        
+        return dropdown_value, input_value, ''
 
 def record_user_query(ticker, exp_choice):
     query_data = {
