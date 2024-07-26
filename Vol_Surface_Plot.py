@@ -124,8 +124,16 @@ def validate_ticker(ticker):
         print(f"Error validating ticker: {e}")
         return False
 
+def get_user_ip():
+    if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+        return request.environ['REMOTE_ADDR']
+    else:
+        # In case the app is behind a proxy, this gets the actual client IP
+        return request.environ['HTTP_X_FORWARDED_FOR']
+
 def record_user_query(ticker, exp_choice):
     query_data = {
+        "user_IP": get_user_ip(),
         "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "ticker": ticker,
         "expiration_choice": 0.5 if exp_choice == 'half' else 1
@@ -134,14 +142,15 @@ def record_user_query(ticker, exp_choice):
         cursor = conn.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS user_queries (
+                user_IP TEXT,
                 datetime TEXT,
                 ticker TEXT,
                 expiration_choice REAL
             )
         ''')
         cursor.execute('''
-            INSERT INTO user_queries (datetime, ticker, expiration_choice)
-            VALUES (:datetime, :ticker, :expiration_choice)
+            INSERT INTO user_queries (user_IP, datetime, ticker, expiration_choice)
+            VALUES (:user_IP, :datetime, :ticker, :expiration_choice)
         ''', query_data)
         conn.commit()
 
