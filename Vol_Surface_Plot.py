@@ -23,7 +23,7 @@ from flask import request
 # Retrieve the Dow Jones Industrial Average company tickers
 def get_djia():
     url = 'https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average'
-    djia_df = pd.read_html(url)[1]
+    djia_df = pd.read_html(url)[2]
     return djia_df['Symbol'].tolist()
 
 # Generate options for Dash dropdown
