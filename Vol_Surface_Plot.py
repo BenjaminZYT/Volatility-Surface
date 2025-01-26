@@ -23,26 +23,23 @@ from flask import request
 # Retrieve the Dow Jones Industrial Average company tickers
 def get_djia():
     url = 'https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average'
-    
-    # Read all tables from the Wikipedia page
-    tables = pd.read_html(url)
-    
-    for table in tables:
-        # Check if the table contains a 'Symbol' column
-        if 'Symbol' in table.columns:
-            # Assign the matching table to djia_df
-            djia_df = table
-            
-            # Return the DataFrame and the Symbol list
-            return djia_df, djia_df['Symbol'].tolist()
-    
-    # If no table with 'Symbol' column is found, raise an error
-    raise ValueError("No table with a 'Symbol' column found on the page.")
+    try:
+        tables = pd.read_html(url)
+        for table in tables:
+            if 'Symbol' in table.columns:
+                return table, table['Symbol'].tolist()
+    except Exception as e:
+        print(f"Error fetching DJIA table: {e}")
+        return pd.DataFrame(), []
 
+    return pd.DataFrame(), []
 
-# Generate options for Dash dropdown
-djia_tickers = get_djia()
-dropdown_options = [{'label': ticker, 'value': ticker} for ticker in djia_tickers]
+djia_df, djia_tickers = get_djia()
+
+if not djia_tickers:
+    dropdown_options = [{'label': 'No data available', 'value': ''}]
+else:
+    dropdown_options = [{'label': ticker, 'value': ticker} for ticker in djia_tickers]
 
 app = dash.Dash(__name__)
 server = app.server
